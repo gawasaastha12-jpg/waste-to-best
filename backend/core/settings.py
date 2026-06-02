@@ -182,8 +182,9 @@ SPECTACULAR_SETTINGS = {
 
 # Redis Cache configuration
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
+USE_LOCAL_CACHE = os.environ.get('USE_LOCAL_CACHE', 'False').lower() in ('true', '1', 't')
 import sys
-if 'test' in sys.argv:
+if 'test' in sys.argv or USE_LOCAL_CACHE:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -199,6 +200,7 @@ else:
     }
 
 # Celery Configuration
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', str(USE_LOCAL_CACHE)).lower() in ('true', '1', 't')
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', REDIS_URL)
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', REDIS_URL)
 CELERY_ACCEPT_CONTENT = ['json']
