@@ -1,0 +1,5 @@
+[default]
+python_interpreter = "venv/Scripts/python.exe"
+search_path = ["backend"]
+project-includes = ["backend"]
+project-excludes = ["**/venv", "**/__pycache__", "**/__pyrefly_virtual__"]
