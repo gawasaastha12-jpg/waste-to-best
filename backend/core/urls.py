@@ -8,11 +8,15 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 urlpatterns = [
     path('admin/', admin.site.urls),
     
+    # Frontend pages
+    path('', include('webui.urls')),
+    
     # API endpoints prefixed with version
     path('api/v1/auth/', include('users.urls')),
     path('api/v1/classification/', include('classification.urls')),
     path('api/v1/safety/', include('safety.urls')),
     # Other features to be appended as they are created:
+
     # path('api/v1/marketplace/', include('marketplace.urls')),
     # path('api/v1/gamification/', include('gamification.urls')),
     # path('api/v1/notifications/', include('notifications.urls')),

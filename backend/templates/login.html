@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}WasteTrack+ | Login{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card glass-card">
+        <h2 class="auth-title">Welcome Back</h2>
+        <p class="auth-subtitle">Sign in to classify waste and earn points</p>
+        
+        <!-- Alerts Display -->
+        <div id="login-alert-container"></div>
+        
+        <form id="login-form" method="POST" novalidate>
+            {% csrf_token %}
+            
+            <!-- Email Field -->
+            <div class="form-group">
+                <label for="login-email" class="form-label">Email Address</label>
+                {{ form.email }}
+            </div>
+            
+            <!-- Password Field -->
+            <div class="form-group">
+                <label for="login-password" class="form-label">Password</label>
+                <div class="input-wrapper">
+                    {{ form.password }}
+                    <button type="button" class="toggle-password" id="toggle-login-password" tabindex="-1">
+                        <i class="far fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-auth-submit">
+                Sign In
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            Don't have an account? <a href="/register/" class="auth-link">Sign Up</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

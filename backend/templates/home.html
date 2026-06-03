@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}WasteTrack+ | AI-Powered Waste Classification{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-logo">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 2L2 22h20L12 2zm0 3.3L18.7 18H5.3L12 5.3zm-1 5.7h2v4h-2v-4zm0 5h2v2h-2v-2z"/>
+        </svg>
+    </div>
+    <h1 class="hero-title">Recycle Smarter with <span>WasteTrack+</span></h1>
+    <p class="hero-tagline">AI-Powered Waste Classification and Reuse Platform</p>
+</section>
+
+<!-- Upload Card Section -->
+<section class="upload-card-container" id="upload-card-section">
+    <div class="card glass-card">
+        <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; text-align: center; color: var(--text-primary);">
+            Identify Waste Category
+        </h2>
+        
+        <!-- Drag and Drop Box -->
+        <div class="upload-zone" id="upload-zone">
+            <input type="file" id="file-input" accept="image/jpeg,image/png" style="display: none;">
+            
+            <div class="upload-icon">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <p class="upload-text">Drag and drop your image here</p>
+            <p class="upload-subtext">Supports PNG, JPEG up to 10MB</p>
+            <button type="button" class="btn-file-select">Browse Files</button>
+            
+            <!-- Selected Image Preview -->
+            <div class="preview-container" id="preview-container">
+                <div class="preview-wrapper">
+                    <img id="preview-image" class="preview-image" src="" alt="Selected Preview">
+                    <button type="button" class="btn-clear-preview" id="btn-clear-preview" title="Clear Image">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Action Trigger Button -->
+        <button type="button" class="btn-analyze" id="btn-analyze" style="display: none;">
+            <i class="fas fa-magic"></i> Analyze Waste
+        </button>
+    </div>
+</section>
+
+<!-- Analysis Progress Overlay Modal -->
+<div class="overlay" id="progress-overlay">
+    <div class="progress-modal">
+        <div class="progress-header">
+            <h3 class="progress-title">Analyzing Waste Item</h3>
+            <p class="progress-subtitle">WasteTrack+ AI classification pipeline is running</p>
+        </div>
+        
+        <!-- Visual Spinner -->
+        <div class="spinner-container">
+            <div class="spinner-outer"></div>
+            <div class="spinner-icon">
+                <i class="fas fa-leaf"></i>
+            </div>
+        </div>
+        
+        <!-- Step Indicators -->
+        <div class="progress-steps">
+            <div class="progress-step" id="step-upload">
+                <div class="progress-step-icon">1</div>
+                <span>Uploading Image to GCS</span>
+            </div>
+            <div class="progress-step" id="step-analyze">
+                <div class="progress-step-icon">2</div>
+                <span>Classifying Waste Category (Gemini)</span>
+            </div>
+            <div class="progress-step" id="step-safety">
+                <div class="progress-step-icon">3</div>
+                <span>Running Safety & Hazard Filter</span>
+            </div>
+            <div class="progress-step" id="step-results">
+                <div class="progress-step-icon">4</div>
+                <span>Generating Upcycling Recommendations</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

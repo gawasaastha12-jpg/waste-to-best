@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}WasteTrack+ | Citizen Registration{% endblock %}
+
+{% block content %}
+<div class="auth-container" style="max-width: 540px;">
+    <div class="card glass-card">
+        <h2 class="auth-title">Create Citizen Account</h2>
+        <p class="auth-subtitle">Join the circular waste classification network</p>
+        
+        <!-- Alerts Display -->
+        <div id="register-alert-container"></div>
+        
+        <form id="register-form" method="POST" novalidate>
+            {% csrf_token %}
+            
+            <!-- Email & Password -->
+            <div style="display: grid; grid-template-columns: 1fr; gap: 4px;">
+                <div class="form-group">
+                    <label for="register-email" class="form-label">Email Address</label>
+                    {{ form.email }}
+                </div>
+                <div class="form-group">
+                    <label for="register-password" class="form-label">Password</label>
+                    <div class="input-wrapper">
+                        {{ form.password }}
+                        <button type="button" class="toggle-password" id="toggle-register-password" tabindex="-1">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0 20px 0;">
+            
+            <!-- Citizen Profile Details -->
+            <div class="form-group">
+                <label for="register-name" class="form-label">Full Name</label>
+                {{ form.display_name }}
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label for="register-phone" class="form-label">Phone Number (Optional)</label>
+                    {{ form.phone_number }}
+                </div>
+                <div class="form-group">
+                    <label for="register-address" class="form-label">Address (Optional)</label>
+                    {{ form.address_line }}
+                </div>
+            </div>
+            
+            <!-- Consent Processing -->
+            <div class="form-checkbox-group">
+                {{ form.consent }}
+                <label for="register-consent" class="checkbox-label">
+                    {{ form.consent.label }}
+                </label>
+            </div>
+            
+            <button type="submit" class="btn-auth-submit">
+                Create Account
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            Already have an account? <a href="/login/" class="auth-link">Sign In</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

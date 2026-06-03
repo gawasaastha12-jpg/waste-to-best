@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}WasteTrack+ | Analysis Results{% endblock %}
+
+{% block content %}
+<!-- Results Container -->
+<div id="results-container" data-item-id="{{ item_id }}">
+    
+    <!-- Top Alert placeholders -->
+    <div id="result-alert-container"></div>
+    
+    <div class="results-grid">
+        
+        <!-- Left Side: Image Display & General Specs -->
+        <aside class="results-sidebar">
+            <div class="card results-image-card">
+                <div class="results-image-wrapper">
+                    <img id="results-image" class="results-image" src="" alt="Analyzed waste image">
+                </div>
+                <div style="text-align: left; padding: 0 8px;">
+                    <h4 style="font-weight: 700; margin-bottom: 4px; color: var(--text-primary);">Item Reference ID</h4>
+                    <p style="font-family: monospace; font-size: 0.85rem; color: var(--text-secondary); word-break: break-all;">{{ item_id }}</p>
+                </div>
+            </div>
+            
+            <!-- Safety Audit Box -->
+            <div class="card" style="padding: 24px;">
+                <h4 style="font-weight: 700; margin-bottom: 12px; border-bottom: 2px solid var(--background); padding-bottom: 8px;">
+                    <i class="fas fa-history" style="color: var(--primary); margin-right: 8px;"></i> Safety Audit Log
+                </h4>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">
+                    This analysis is verified by WasteTrack+ compliance engines. Audit logs are written immutably to verify clean upcycling.
+                </p>
+                <div class="safety-flags-container" id="safety-flags">
+                    <!-- Loaded dynamically in main.js -->
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Right Side: Classification Results, Recommendations, Confirmation -->
+        <section class="results-main">
+            
+            <!-- Category Title Header Card -->
+            <div class="card results-header-card">
+                <div class="results-category-info">
+                    <span class="results-label">AI PREDICTED CATEGORY</span>
+                    <div class="results-title-group">
+                        <h2 class="results-title" id="results-title">...</h2>
+                        <span class="badge" id="results-cat-badge">...</span>
+                    </div>
+                </div>
+                
+                <div class="results-confidence-container">
+                    <span class="results-label">CONFIDENCE SCORE</span>
+                    <div class="gauge-circle" id="results-gauge" style="--percent: 0;">0%</div>
+                </div>
+            </div>
+            
+            <!-- Safety Risk Assessment Box -->
+            <div class="card" style="padding: 24px 32px;">
+                <h3 style="font-weight: 700; font-size: 1.2rem; margin-bottom: 16px;">
+                    <i class="fas fa-shield-alt" style="color: var(--primary); margin-right: 8px;"></i> Safety & Toxicity Assessment
+                </h3>
+                
+                <div class="safety-alert-box safety-low" id="safety-alert-box">
+                    <span class="safety-alert-icon" id="safety-alert-icon"><i class="fas fa-spinner fa-spin"></i></span>
+                    <div class="safety-alert-content">
+                        <div class="safety-alert-title" id="safety-alert-title">Loading Assessment...</div>
+                        <div class="safety-alert-text" id="safety-alert-text">The safety engine is querying rules database...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Circular recommendations (Disposal & Upcycling) -->
+            <div class="info-section-grid">
+                
+                <!-- Recycling recommendations -->
+                <div class="card info-sub-card">
+                    <h3 class="info-title">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+                        Recycling Recommendation
+                    </h3>
+                    <p class="disposal-text" id="results-disposal">Loading disposal methods...</p>
+                </div>
+                
+                <!-- Upcycling / Reuse Ideas -->
+                <div class="card info-sub-card">
+                    <h3 class="info-title">
+                        <svg viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-1.3l-.85-.6C7.8 13.1 7 11.6 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 2.6-1.19 4.1-1.15 5.1z"/></svg>
+                        Suggested Reuse Ideas
+                    </h3>
+                    <ul class="idea-list" id="results-upcycling">
+                        <li class="idea-item">Loading upcycling recommendations...</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Category Confirmation / Override Action Card -->
+            <div class="card confirm-card">
+                <div class="confirm-flex">
+                    <div class="confirm-info">
+                        <h3 class="confirm-title">Verify Classification</h3>
+                        <p class="confirm-text">Is the AI classification incorrect? Confirm the category below or select the correct override choice.</p>
+                    </div>
+                    
+                    <form class="confirm-actions" id="confirm-category-form">
+                        <select class="confirm-select" id="confirmed-category-select" required>
+                            <option value="Plastic">Plastic</option>
+                            <option value="Paper">Paper</option>
+                            <option value="Glass">Glass</option>
+                            <option value="Metal">Metal</option>
+                            <option value="Organic">Organic</option>
+                            <option value="Textile">Textile</option>
+                            <option value="E-Waste">E-Waste</option>
+                            <option value="Hazardous">Hazardous</option>
+                            <option value="Mixed Waste">Mixed Waste</option>
+                        </select>
+                        <button type="submit" class="btn-confirm-submit">Confirm Classification</button>
+                    </form>
+                </div>
+                <div id="confirm-alert-container" style="margin-top: 16px;"></div>
+            </div>
+            
+        </section>
+    </div>
+</div>
+{% endblock %}

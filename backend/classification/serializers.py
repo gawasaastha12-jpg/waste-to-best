@@ -2,6 +2,7 @@
 from rest_framework import serializers
 from .models import WasteItem
 from .constants import CategoryChoices
+from safety.serializers import SafetyAssessmentSerializer
 
 class SignedURLRequestSerializer(serializers.Serializer):
     file_name = serializers.CharField(max_length=255)
@@ -24,6 +25,8 @@ class ClassificationSubmitSerializer(serializers.Serializer):
     image_sha256 = serializers.CharField(max_length=64, min_length=64)
 
 class WasteItemSerializer(serializers.ModelSerializer):
+    safety_assessment = SafetyAssessmentSerializer(read_only=True)
+
     class Meta:
         model = WasteItem
         fields = [
@@ -38,15 +41,17 @@ class WasteItemSerializer(serializers.ModelSerializer):
             'clarification_questions',
             'disposal_instructions',
             'upcycling_guides',
+            'safety_assessment',
             'created_at',
             'updated_at'
         ]
         read_only_fields = [
             'id', 'citizen', 'status', 'predicted_category', 'confidence_score',
             'alternatives', 'clarification_questions', 'disposal_instructions',
-            'upcycling_guides', 'created_at', 'updated_at'
+            'upcycling_guides', 'safety_assessment', 'created_at', 'updated_at'
         ]
 
 class ClassificationConfirmSerializer(serializers.Serializer):
     waste_item_id = serializers.UUIDField()
     confirmed_category = serializers.ChoiceField(choices=CategoryChoices.choices)
+

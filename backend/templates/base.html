@@ -1,0 +1,72 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}WasteTrack+ | AI Waste Classification & Reuse{% endblock %}</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="AI-Powered Waste Classification and Upcycling Reuse Recommendation Platform for circular economics.">
+    <meta name="keywords" content="waste classification, recycling, upcycling, circular economy, waste management, AI">
+    
+    <!-- FontAwesome & Outfit Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar-header">
+        <div class="navbar-container">
+            <a href="/" class="navbar-brand" id="nav-brand-logo">
+                <svg viewBox="0 0 24 24">
+                    <path d="M17 8C15.3 8 13.9 9.1 13.3 10.6L9.9 4.8C9.5 4.3 8.8 4 8 4C6.9 4 6 4.9 6 6V7.1C3.7 7.7 2 9.8 2 12.3C2 15.4 4.6 18 7.7 18H8.3C8.9 19.5 10.3 20.6 12 20.6C13.7 20.6 15.1 19.5 15.7 18H16.3C19.4 18 22 15.4 22 12.3C22 9.8 20.3 7.7 18 7.1V6C18 4.9 17.1 4 16 4C15.2 4 14.5 4.3 14.1 4.8L13.6 5.6C14.7 6.1 15.6 7 16.1 8H17ZM8 6C8 6 8.5 6.7 9.1 7.7L8.4 8.9C7.8 8.4 7 8 6.1 8C6 8 6 6 6 6H8ZM7.7 16H7.7C5.7 16 4 14.3 4 12.3C4 10.5 5.3 9 7.1 8.8L9.9 13.6C10.2 14.1 10.7 14.5 11.3 14.8L10.3 16H7.7ZM12 18.8C10.9 18.8 10 17.9 10 16.8V16.3L13.7 11.2C13.9 10.9 14.3 10.7 14.7 10.7C15.1 10.7 15.5 10.9 15.7 11.2L16.2 11.9C15.6 12.4 14.7 13.2 14 14H16V16.8C16 17.9 15.1 18.8 14 18.8H12ZM16.3 16H13.7L12.7 14.8C13.3 14.5 13.8 14.1 14.1 13.6L16.9 8.8C18.7 9 20 10.5 20 12.3C20 14.3 18.3 16 16.3 16Z"/>
+                </svg>
+                <span>WasteTrack+</span>
+            </a>
+            
+            <nav>
+                <ul class="navbar-menu" id="navbar-menu">
+                    <li><a href="/" class="navbar-link active" id="nav-home">Home</a></li>
+                    <li><a href="/#upload-card-section" class="navbar-link" id="nav-upload">Upload</a></li>
+                </ul>
+            </nav>
+            
+            <div class="navbar-auth" id="navbar-auth">
+                <!-- Populated dynamically via main.js authentication logic -->
+                <div style="width: 120px; height: 28px; background-color: var(--border-color); border-radius: var(--radius-sm); animation: pulse 1.5s infinite;"></div>
+            </div>
+            
+            <button class="navbar-toggle" id="navbar-toggle-btn" aria-label="Toggle Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main View Content -->
+    <main class="main-wrapper">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer Section -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-copyright">
+                &copy; 2026 WasteTrack+. Final Year Engineering Portfolio.
+            </div>
+            <ul class="footer-links">
+                <li><a href="#" class="footer-link">Privacy Policy</a></li>
+                <li><a href="#" class="footer-link">Terms of Service</a></li>
+                <li><a href="#" class="footer-link">GCS Audit Logs</a></li>
+            </ul>
+        </div>
+    </footer>
+
+    <!-- Global Javascript File -->
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
