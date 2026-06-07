@@ -143,7 +143,6 @@ async function updateNavbar() {
 
     if (access) {
         // Logged In navbar state
-        let userInfo = localStorage.getItem(USER_INFO_KEY);
         let displayName = "Citizen";
         let ecoScore = 0;
 
@@ -153,6 +152,7 @@ async function updateNavbar() {
             if (profileRes && profileRes.ok) {
                 const profile = await profileRes.json();
                 displayName = profile.display_name || "Citizen";
+                ecoScore = profile.eco_score || 0;
                 localStorage.setItem(USER_INFO_KEY, JSON.stringify(profile));
             }
         } catch (e) {
@@ -162,20 +162,11 @@ async function updateNavbar() {
         navAuth.innerHTML = `
             <div class="eco-badge">
                 <i class="fas fa-leaf"></i>
-                <span id="eco-score-val">0 Points</span>
+                <span id="eco-score-val">${ecoScore} Points</span>
             </div>
             <a href="/profile/" class="navbar-link" id="nav-user-name" style="font-weight: 600; color: var(--primary);">${displayName}</a>
             <a href="#" id="nav-logout" class="btn-nav-login" style="margin-left: 8px;">Logout</a>
         `;
-
-        // Attempt to load eco score from the authenticated user serializer (needs profile/user details)
-        try {
-            // The score resides on the User model. If we query the profile, it might not have the user score.
-            // Let's call verification docs or simple user detail if available.
-            // Or since user is logged in, we can parse the token or fetch details if we need to.
-            // For now, let's keep it clean or display reputation.
-            const userRes = await apiFetch('/api/v1/auth/profile/'); // Can fetch profile.
-        } catch (err) {}
 
         // Bind logout click event
         document.getElementById('nav-logout').addEventListener('click', (e) => {
@@ -184,12 +175,12 @@ async function updateNavbar() {
             window.location.href = '/login/?msg=logged_out';
         });
 
-        // Ensure Results page link is accessible
+        // Ensure Profile history page link is accessible
         if (navMenu) {
             // Find or append Results page if not present
             if (!document.getElementById('nav-results')) {
                 const resultsLi = document.createElement('li');
-                resultsLi.innerHTML = `<a href="/result/history/" class="navbar-link" id="nav-results">History</a>`;
+                resultsLi.innerHTML = `<a href="/profile/" class="navbar-link" id="nav-results">History</a>`;
                 navMenu.appendChild(resultsLi);
             }
         }
@@ -204,6 +195,7 @@ async function updateNavbar() {
         if (resLink) resLink.parentElement.remove();
     }
 }
+
 
 // Redirect helpers for page authorization protection
 function protectPage() {
@@ -806,4 +798,155 @@ document.addEventListener('DOMContentLoaded', () => {
     setupRegistration();
     setupUploadPage();
     setupResultsPage();
+    setupProfilePage();
 });
+
+// Profile page data binding
+async function setupProfilePage() {
+    const profileContainer = document.getElementById('profile-page-container');
+    if (!profileContainer) return;
+
+    const alertContainer = 'profile-alert-container';
+    const historyBody = document.getElementById('history-list-body');
+
+    try {
+        // 1. Fetch Profile info from API
+        const profileRes = await apiFetch('/api/v1/auth/profile/');
+        if (!profileRes || !profileRes.ok) {
+            showAlert(alertContainer, "Could not fetch user profile details.");
+            return;
+        }
+
+        const profile = await profileRes.json();
+
+        // 2. Populate Profile View elements
+        document.getElementById('profile-display-name').innerText = profile.display_name || "Citizen";
+        document.getElementById('profile-email').innerText = profile.email || "...";
+        document.getElementById('profile-phone').innerText = profile.phone_number || "Not Provided";
+        document.getElementById('profile-address').innerText = profile.address_line || "Not Provided";
+        document.getElementById('profile-eco-score').innerText = `${profile.eco_score || 0} Points`;
+        document.getElementById('profile-reputation-score').innerText = `${parseFloat(profile.reputation_score || 5).toFixed(2)} / 5.00`;
+
+        const roleBadge = document.getElementById('profile-user-role');
+        if (profile.role) {
+            roleBadge.innerText = profile.role;
+            roleBadge.className = 'badge badge-organic';
+        }
+
+        const verificationBadge = document.getElementById('profile-verification');
+        if (profile.is_verified) {
+            verificationBadge.innerText = "Verified";
+            verificationBadge.className = "badge badge-glass";
+            verificationBadge.style.backgroundColor = "var(--success-light)";
+            verificationBadge.style.color = "var(--success)";
+        } else {
+            verificationBadge.innerText = "Not Verified";
+            verificationBadge.className = "badge badge-mixed-waste";
+        }
+
+        // 3. Fetch Paginated History list
+        const historyRes = await apiFetch('/api/v1/classification/');
+        if (!historyRes || !historyRes.ok) {
+            historyBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="padding: 32px; text-align: center; color: var(--danger);">
+                        <i class="fas fa-exclamation-triangle"></i> Failed to retrieve history data.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        const historyData = await historyRes.json();
+        const items = historyData.results || [];
+
+        if (items.length === 0) {
+            historyBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="padding: 48px; text-align: center; color: var(--text-muted);">
+                        <div style="font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5;"><i class="fas fa-trash-restore-alt"></i></div>
+                        <p style="font-weight: 500; margin-bottom: 8px;">No waste items classified yet</p>
+                        <a href="/#upload-card-section" class="btn-view-details" style="font-size: 0.85rem; padding: 6px 16px;">Classify Your First Item</a>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        historyBody.innerHTML = '';
+        items.forEach(item => {
+            const tr = document.createElement('tr');
+            
+            // Image thumbnail
+            const thumbUrl = item.image_url || '';
+            const thumbTd = `
+                <td style="padding: 12px 8px;">
+                    <img class="history-thumb" src="${thumbUrl}" alt="Thumbnail" onerror="this.src='https://placehold.co/60x45?text=No+Img'">
+                </td>
+            `;
+
+            // Category badge
+            const cat = item.predicted_category || "Mixed Waste";
+            const catBadgeClass = `badge-${cat.toLowerCase().replace(' ', '-')}`;
+            const categoryTd = `
+                <td style="padding: 12px 8px;">
+                    <span class="badge ${catBadgeClass}">${cat}</span>
+                </td>
+            `;
+
+            // Confidence score percentage
+            let confPercent = "N/A";
+            if (item.confidence_score) {
+                confPercent = `${Math.round(parseFloat(item.confidence_score) * 100)}%`;
+            }
+            const confTd = `<td style="padding: 12px 8px; font-weight: 600;">${confPercent}</td>`;
+
+            // Safety status
+            let safetyText = "Pending";
+            let safetyBadgeClass = "badge-mixed-waste";
+            
+            if (item.safety_assessment) {
+                const risk = item.safety_assessment.risk_level || 'SAFE';
+                if (risk === 'SAFE') {
+                    safetyText = "Approved";
+                    safetyBadgeClass = "badge-organic";
+                } else if (risk === 'HIGH' || risk === 'CRITICAL') {
+                    safetyText = "Blocked";
+                    safetyBadgeClass = "badge-hazardous";
+                } else {
+                    safetyText = "Caution";
+                    safetyBadgeClass = "badge-paper";
+                }
+            } else if (item.status === 'FAILED') {
+                safetyText = "Failed";
+                safetyBadgeClass = "badge-hazardous";
+            }
+            const safetyTd = `
+                <td style="padding: 12px 8px;">
+                    <span class="badge ${safetyBadgeClass}">${safetyText}</span>
+                </td>
+            `;
+
+            // Formatted creation date
+            const dateObj = new Date(item.created_at);
+            const dateStr = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + 
+                            ' ' + dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            const dateTd = `<td style="padding: 12px 8px; font-size: 0.85rem; color: var(--text-secondary);">${dateStr}</td>`;
+
+            // Action details link
+            const actionTd = `
+                <td style="padding: 12px 8px; text-align: right;">
+                    <a href="/result/${item.id}/" class="btn-view-details">Details</a>
+                </td>
+            `;
+
+            tr.innerHTML = thumbTd + categoryTd + confTd + safetyTd + dateTd + actionTd;
+            historyBody.appendChild(tr);
+        });
+
+    } catch (err) {
+        showAlert(alertContainer, "Failed to load profile parameters.");
+        console.error("Profile page load error:", err);
+    }
+}
+

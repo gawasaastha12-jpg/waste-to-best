@@ -1134,3 +1134,42 @@ button, input, select, textarea {
         text-align: center;
     }
 }
+
+/* History Table & Profile styles */
+#history-table th {
+    font-weight: 700;
+}
+#history-table td {
+    padding: 16px 8px;
+    vertical-align: middle;
+    border-bottom: 1.5px solid var(--border-color);
+}
+#history-table tr:last-child td {
+    border-bottom: none;
+}
+.history-thumb {
+    width: 48px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    border: 1px solid var(--border-color);
+    background-color: #000;
+    display: block;
+}
+.btn-view-details {
+    background-color: var(--accent-light);
+    color: var(--primary);
+    border: none;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    display: inline-block;
+}
+.btn-view-details:hover {
+    background-color: var(--primary);
+    color: var(--text-on-primary);
+}
+

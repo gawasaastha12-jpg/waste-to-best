@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}WasteTrack+ | Citizen Profile{% endblock %}
+
+{% block content %}
+<div class="profile-container" id="profile-page-container">
+    
+    <!-- Alerts Display -->
+    <div id="profile-alert-container"></div>
+    
+    <!-- Profile Grid Layout -->
+    <div style="display: grid; grid-template-columns: 4fr 8fr; gap: 32px; align-items: start; animation: fadeIn 0.8s ease-out;">
+        
+        <!-- Left Column: User Profile Info -->
+        <aside style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="card" style="padding: 32px 24px; text-align: center;">
+                <div style="background-color: var(--accent-light); color: var(--primary); width: 96px; height: 96px; border-radius: var(--radius-full); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: var(--shadow-sm); font-size: 2.5rem;">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                
+                <h2 id="profile-display-name" style="font-size: 1.6rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">Loading...</h2>
+                <p id="profile-user-role" class="badge badge-organic" style="font-size: 0.75rem; text-transform: uppercase; margin-bottom: 24px; font-weight: 700;">Citizen</p>
+                
+                <!-- Detailed Contact list -->
+                <div style="text-align: left; display: flex; flex-direction: column; gap: 16px; border-top: 1px solid var(--border-color); padding-top: 24px;">
+                    <div>
+                        <span class="results-label" style="display: block; margin-bottom: 4px;">EMAIL ADDRESS</span>
+                        <span id="profile-email" style="font-weight: 500; font-size: 0.95rem; color: var(--text-primary);">...</span>
+                    </div>
+                    <div>
+                        <span class="results-label" style="display: block; margin-bottom: 4px;">PHONE NUMBER</span>
+                        <span id="profile-phone" style="font-weight: 500; font-size: 0.95rem; color: var(--text-primary);">...</span>
+                    </div>
+                    <div>
+                        <span class="results-label" style="display: block; margin-bottom: 4px;">ADDRESS</span>
+                        <span id="profile-address" style="font-weight: 500; font-size: 0.95rem; color: var(--text-primary); line-height: 1.4;">...</span>
+                    </div>
+                    <div>
+                        <span class="results-label" style="display: block; margin-bottom: 4px;">VERIFICATION STATUS</span>
+                        <span id="profile-verification" class="badge badge-mixed-waste" style="font-size: 0.75rem; font-weight: 700; margin-top: 2px;">Not Verified</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Right Column: Stats Row & History -->
+        <section style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Stats row -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <!-- Eco Score card -->
+                <div class="card" style="padding: 24px; display: flex; align-items: center; gap: 20px;">
+                    <div style="background-color: var(--accent-light); color: var(--primary); width: 60px; height: 60px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; box-shadow: var(--shadow-sm);">
+                        <i class="fas fa-leaf"></i>
+                    </div>
+                    <div>
+                        <span class="results-label" style="display: block; margin-bottom: 2px;">ECO SCORE</span>
+                        <h3 id="profile-eco-score" style="font-size: 1.8rem; font-weight: 800; color: var(--primary);">0 Points</h3>
+                    </div>
+                </div>
+                
+                <!-- Reputation card -->
+                <div class="card" style="padding: 24px; display: flex; align-items: center; gap: 20px;">
+                    <div style="background-color: #FFF8E1; color: #FFA000; width: 60px; height: 60px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; box-shadow: var(--shadow-sm);">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <div>
+                        <span class="results-label" style="display: block; margin-bottom: 2px;">REPUTATION SCORE</span>
+                        <h3 id="profile-reputation-score" style="font-size: 1.8rem; font-weight: 800; color: #FFA000;">5.00 / 5.00</h3>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- History section -->
+            <div class="card" style="padding: 32px;">
+                <h3 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 20px; border-bottom: 2px solid var(--background); padding-bottom: 12px; display: flex; align-items: center; gap: 10px; color: var(--text-primary);">
+                    <i class="fas fa-history" style="color: var(--primary);"></i> Classification History
+                </h3>
+                
+                <!-- History Table Wrapper -->
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;" id="history-table">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-size: 0.8rem; letter-spacing: 0.5px; text-transform: uppercase;">
+                                <th style="padding: 12px 8px;">Image</th>
+                                <th style="padding: 12px 8px;">Category</th>
+                                <th style="padding: 12px 8px;">Confidence</th>
+                                <th style="padding: 12px 8px;">Safety Status</th>
+                                <th style="padding: 12px 8px;">Created At</th>
+                                <th style="padding: 12px 8px; text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list-body" style="font-size: 0.95rem; color: var(--text-primary);">
+                            <!-- Loaded dynamically in main.js -->
+                            <tr>
+                                <td colspan="6" style="padding: 32px; text-align: center; color: var(--text-muted);">
+                                    <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> Loading classification history...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </section>
+        
+    </div>
+</div>
+{% endblock %}

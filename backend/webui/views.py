@@ -27,3 +27,10 @@ def register_view(request):
     """
     form = RegisterForm()
     return render(request, 'register.html', {'form': form})
+
+def profile_view(request):
+    """
+    Renders the citizen profile and classification history page.
+    """
+    return render(request, 'profile.html')
+

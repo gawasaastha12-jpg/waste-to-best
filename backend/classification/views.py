@@ -105,3 +105,33 @@ class ClassificationConfirmView(APIView):
             except ValueError as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ClassificationListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        responses={200: WasteItemSerializer(many=True)},
+        description="Retrieves a paginated list of classification waste items for the authenticated citizen."
+    )
+    def get(self, request: Request) -> Response:
+        repo = WasteItemRepository()
+        try:
+            limit = int(request.query_params.get('limit', 20))
+            offset = int(request.query_params.get('offset', 0))
+        except (ValueError, TypeError):
+            limit = 20
+            offset = 0
+
+        data = repo.get_paginated_items(
+            citizen_id=str(request.user.id),
+            limit=limit,
+            offset=offset
+        )
+        
+        serializer = WasteItemSerializer(data['results'], many=True)
+        return Response({
+            'count': data['count'],
+            'results': serializer.data
+        }, status=status.HTTP_200_OK)
+

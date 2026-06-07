@@ -7,6 +7,11 @@ from core.validators import validate_file_security
 User = get_user_model()
 
 class ProfileSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source='user.email', read_only=True)
+    role = serializers.CharField(source='user.role', read_only=True)
+    eco_score = serializers.IntegerField(source='user.eco_score_cache', read_only=True)
+    reputation_score = serializers.DecimalField(source='user.reputation_score', max_digits=3, decimal_places=2, read_only=True)
+
     class Meta:
         model = Profile
         fields = [
@@ -16,9 +21,14 @@ class ProfileSerializer(serializers.ModelSerializer):
             'latitude',
             'longitude',
             'business_reg_no',
-            'is_verified'
+            'is_verified',
+            'email',
+            'role',
+            'eco_score',
+            'reputation_score'
         ]
-        read_only_fields = ['is_verified']
+        read_only_fields = ['is_verified', 'email', 'role', 'eco_score', 'reputation_score']
+
 
 class UserConsentLogSerializer(serializers.ModelSerializer):
     class Meta:
