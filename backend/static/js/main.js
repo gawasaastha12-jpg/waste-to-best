@@ -292,11 +292,15 @@ async function setupRegistration() {
             const data = await response.json();
 
             if (response.ok) {
-                showAlert(alertContainer, "Registration successful! Redirecting to login...", "success");
+                showAlert(alertContainer, "Registration successful! Logging you in...", "success");
                 form.reset();
+                // Save the JWT tokens from registration response and redirect to home
+                if (data.tokens) {
+                    saveTokens(data.tokens);
+                }
                 setTimeout(() => {
-                    window.location.href = '/login/?msg=registered';
-                }, 2000);
+                    window.location.href = '/';
+                }, 1500);
             } else {
                 // Parse and show validation errors
                 let errorMsg = "Registration failed.";
@@ -792,6 +796,16 @@ async function setupResultsPage() {
 document.addEventListener('DOMContentLoaded', () => {
     protectPage();
     updateNavbar();
+
+    // BUG-28 fix: Mobile hamburger menu toggle
+    const navToggle = document.getElementById('navbar-toggle-btn');
+    const navMenu = document.getElementById('navbar-menu');
+    if (navToggle && navMenu) {
+        navToggle.addEventListener('click', () => {
+            navMenu.classList.toggle('active');
+            navToggle.classList.toggle('active');
+        });
+    }
     
     // Bind features based on active templates
     setupLogin();

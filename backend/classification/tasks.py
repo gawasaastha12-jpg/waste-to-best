@@ -1,3 +1,4 @@
+
 # backend/classification/tasks.py
 import time
 import logging
@@ -38,7 +39,7 @@ class ClassificationBaseTask(Task):
             )
             try:
                 repo = WasteItemRepository()
-                repo.update_status_atomic(item_id, ClassificationStatus.FAILED)
+                repo.update_status_atomic(item_id, str(ClassificationStatus.FAILED))
             except Exception as e:
                 logger.exception(f"Failed to atomically transition item {item_id} status to FAILED.")
 
@@ -192,7 +193,12 @@ def safety_filter_task(self, payload: Dict[str, Any]) -> Dict[str, Any]:
 
     # Clean check: Search for hazardous warning triggers
     hazard_words = ["asbestos", "battery", "acid", "toxic", "poison", "explosive", "ammunition", "chemical"]
-    is_hazardous = any(word in disposal.lower() or word in category.lower() for word in hazard_words)
+    disposal_lower = disposal.lower()
+    category_lower = category.lower()
+    is_hazardous = any(
+        word in disposal_lower.split() or word in category_lower.split()
+        for word in hazard_words
+    )
 
     if is_hazardous:
         logger.warning(f"Hazardous signature detected for WasteItem {payload['item_id']}. Overriding category.")
@@ -234,15 +240,15 @@ def finalize_classification_task(self, payload: Dict[str, Any]) -> str:
     safety_status = payload.get("safety_status")
     
     if safety_status in ["BLOCKED", "FAILED"]:
-        next_status = ClassificationStatus.FAILED
+        next_status = str(ClassificationStatus.FAILED)
     elif safety_status == "REVIEW_REQUIRED":
-        next_status = ClassificationStatus.PENDING_CONFIRMATION
+        next_status = str(ClassificationStatus.PENDING_CONFIRMATION)
     else:
-        next_status = ClassificationStatus.CLASSIFIED
+        next_status = str(ClassificationStatus.CLASSIFIED)
         if requires_clarification or confidence < 0.60:
-            next_status = ClassificationStatus.PENDING_CLARIFICATION
+            next_status = str(ClassificationStatus.PENDING_CLARIFICATION)
         elif confidence < 0.85:
-            next_status = ClassificationStatus.PENDING_CONFIRMATION
+            next_status = str(ClassificationStatus.PENDING_CONFIRMATION)
 
     updates = {
         "predicted_category": category,
@@ -294,10 +300,10 @@ def run_classification_pipeline_task(item_id: str) -> None:
     """
     from safety.tasks import safety_analysis_task
     pipeline_chain = chain(
-        vision_analysis_task.s(item_id),
-        gemini_analysis_task.s(),
-        safety_analysis_task.s(),
-        finalize_classification_task.s()
+        vision_analysis_task.s(item_id),  # type: ignore
+        gemini_analysis_task.s(),  # type: ignore
+        safety_analysis_task.s(),  # type: ignore
+        finalize_classification_task.s()  # type: ignore
     )
     pipeline_chain.apply_async()
 

@@ -26,11 +26,12 @@ class BaseRepository(Generic[T]):
         """
         return list(self.model.objects.all())
 
-    def filter_by(self, **kwargs: Any) -> List[T]:
+    def filter_by(self, **kwargs: Any) -> models.QuerySet:
         """
         Filters instances matching parameters.
+        Returns a QuerySet to allow further chaining and DRF pagination support.
         """
-        return list(self.model.objects.filter(**kwargs))
+        return self.model.objects.filter(**kwargs)
 
     def create(self, **fields: Any) -> T:
         """

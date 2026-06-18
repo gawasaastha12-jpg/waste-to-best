@@ -1,4 +1,5 @@
 # backend/users/views.py
+from django.http import Http404
 from rest_framework import viewsets, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -48,14 +49,19 @@ class UserRegisterView(APIView):
 
 class ProfileViewSet(viewsets.ModelViewSet):
     serializer_class = ProfileSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwner]
+    # IsOwner removed: get_queryset already enforces user-scoping, and
+    # get_object bypasses DRF's check_object_permissions making IsOwner a no-op.
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         # Users can only view or edit their own profile
         return ProfileRepository().filter_by(user_id=self.request.user.id)
 
     def get_object(self):
-        return ProfileRepository().get_by_user_id(self.request.user.id)
+        profile = ProfileRepository().get_by_user_id(self.request.user.id)
+        if profile is None:
+            raise Http404("Profile not found. Please complete registration.")
+        return profile
 
     @extend_schema(
         request=ProfileSerializer,

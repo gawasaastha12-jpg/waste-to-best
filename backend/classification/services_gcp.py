@@ -24,7 +24,7 @@ class GCSService:
             logger.warning("GCS client initialization failed. Falling back to simulated storage interface.")
             self.client = None
 
-    def generate_signed_upload_url(self, blob_name: str, expiration_minutes: int = 15) -> str:
+    def generate_signed_upload_url(self, blob_name: str, expiration_minutes: int = 15, content_type: str = "image/jpeg") -> str:
         """
         Generates a signed URL to allow secure client-side uploads directly to a private GCS bucket.
         """
@@ -39,7 +39,7 @@ class GCSService:
                 version="v4",
                 expiration=datetime.timedelta(minutes=expiration_minutes),
                 method="PUT",
-                content_type="image/jpeg"
+                content_type=content_type
             )
             return url
         except Exception as e:
@@ -138,7 +138,8 @@ class GeminiService:
             )
             
             # Mount media content from URI
-            image_part = Part.from_uri(mime_type="image/jpeg", uri=image_url)
+            mime_type = "image/png" if image_url.lower().endswith(".png") else "image/jpeg"
+            image_part = Part.from_uri(mime_type=mime_type, uri=image_url)
             
             response = model.generate_content([image_part, prompt])
             result_data = json.loads(response.text)

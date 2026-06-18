@@ -45,9 +45,10 @@ class SafetyBaseTask(Task):
                     logger.exception(f"Fallback failure recovery failed for item {item_id}: {str(e)}")
 
 
-def check_and_update_circuit_breaker(success: bool = True) -> bool:
+def check_and_update_circuit_breaker(success: bool = True, check_only: bool = False) -> bool:
     """
     Circuit Breaker logic: switches to deterministic rules if error rate exceeds 20% in 5 minutes.
+    When check_only=True, only checks breaker status without incrementing counters.
     """
     now = time.time()
     success_key = "safety:cb:success_count"
@@ -58,6 +59,9 @@ def check_and_update_circuit_breaker(success: bool = True) -> bool:
     if blocked_until and now < float(blocked_until):
         # Circuit is open (tripped)
         return False
+
+    if check_only:
+        return True
 
     # Increment metric counts
     if success:
@@ -169,7 +173,7 @@ def safety_analysis_task(self, payload: Dict[str, Any]) -> Dict[str, Any]:
             decision_source = DecisionSource.RULE_OVERRIDE if category == "Hazardous" else DecisionSource.RULE_ENGINE
         else:
             # 5. Safety AIService Analysis (Circuit Breaker Safe)
-            cb_active = check_and_update_circuit_breaker(success=True)
+            cb_active = check_and_update_circuit_breaker(check_only=True)
             if cb_active:
                 try:
                     ai_service = SafetyAIService()
@@ -179,7 +183,7 @@ def safety_analysis_task(self, payload: Dict[str, Any]) -> Dict[str, Any]:
                     validate_safety_output(ai_result)
                     safety_data = ai_result
                     
-                    # Update success metric
+                    # Count success AFTER the call succeeds
                     check_and_update_circuit_breaker(success=True)
                 except Exception as ex:
                     logger.error(f"Vertex AI Safety service failure: {str(ex)}")

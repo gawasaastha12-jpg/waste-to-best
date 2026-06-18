@@ -48,6 +48,8 @@ class SafetyAssessment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = models.Manager()
+
     class Meta:
         constraints = [
             CheckConstraint(
@@ -79,6 +81,8 @@ class SafetyAuditLog(models.Model):
     decision = models.CharField(max_length=64)
     reason = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    objects = models.Manager()
 
     class Meta:
         indexes = [
@@ -133,6 +137,8 @@ class ManualSafetyReview(models.Model):
     review_notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
+
+    objects = models.Manager()
 
     class Meta:
         indexes = [

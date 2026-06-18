@@ -71,7 +71,8 @@ class SafetyAIService:
                 }
             )
 
-            image_part = Part.from_uri(mime_type="image/jpeg", uri=image_url)
+            image_mime = "image/png" if image_url.lower().endswith(".png") else "image/jpeg"
+            image_part = Part.from_uri(mime_type=image_mime, uri=image_url)
             
             # Executing generation
             response = model.generate_content([image_part, prompt], request_options={"timeout": 30.0})

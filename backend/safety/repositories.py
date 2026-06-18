@@ -80,7 +80,8 @@ class SafetyRepository:
         )
 
     def create_manual_review(self, waste_item_id: str, assessment_id: str, priority: str, sla_duration_hours: int = 24) -> ManualSafetyReview:
-        sla_due_at = timezone.now() + timezone.timedelta(hours=sla_duration_hours)
+        from datetime import timedelta
+        sla_due_at = timezone.now() + timedelta(hours=sla_duration_hours)
         return ManualSafetyReview.objects.create(
             waste_item_id=waste_item_id,
             assessment_id=assessment_id,

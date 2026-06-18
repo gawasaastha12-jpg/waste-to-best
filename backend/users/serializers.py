@@ -1,4 +1,5 @@
 # backend/users/serializers.py
+from django.core.files.storage import default_storage
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Profile, UserConsentLog, VerificationDocument, RoleChoices
@@ -72,13 +73,12 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        profile_data = validated_data.pop('profile')
-        password = validated_data.pop('password')
-        validated_data.pop('consent')  # Handled inside the Service layer
-        
-        # User instance created inside Service layer, not serializer direct creation
-        # to ensure transaction consistency, so we delegate this.
-        return validated_data
+        # User creation is delegated to UserRegistrationService for transactional
+        # consistency. Calling serializer.save() directly is not supported.
+        raise NotImplementedError(
+            "User creation must go through UserRegistrationService.register_user(). "
+            "Do not call serializer.save() directly."
+        )
 
 class VerificationDocumentSerializer(serializers.ModelSerializer):
     document_file = serializers.FileField(write_only=True, validators=[validate_file_security])
@@ -98,6 +98,10 @@ class VerificationDocumentSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         file_obj = attrs.pop('document_file')
-        # Simulate generating the protected GCS bucket URL
-        attrs['document_url'] = f"https://storage.googleapis.com/wastetrack-verification-docs/{file_obj.name}"
+        # Save the uploaded file to storage (local filesystem in dev, GCS in production)
+        saved_path = default_storage.save(
+            f"verification-docs/{file_obj.name}",
+            file_obj
+        )
+        attrs['document_url'] = default_storage.url(saved_path)
         return attrs

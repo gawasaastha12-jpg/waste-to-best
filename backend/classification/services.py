@@ -27,7 +27,7 @@ class ImageUploadService:
         ext = file_name.split('.')[-1]
         unique_name = f"{uuid.uuid4()}.{ext}"
         
-        signed_url = self.gcs_service.generate_signed_upload_url(unique_name)
+        signed_url = self.gcs_service.generate_signed_upload_url(unique_name, content_type=content_type)
         gcs_base = f"https://storage.googleapis.com/{self.gcs_service.bucket_name}"
         if not signed_url.startswith("https://storage.googleapis.com"):
             gcs_base = f"https://storage.gcs.local/{self.gcs_service.bucket_name}"
@@ -54,7 +54,8 @@ class ClassificationPipelineService:
 
         # Cost Protection: Enforce daily classification quota limit (Max 50 items/day)
         from django.utils import timezone
-        yesterday = timezone.now() - timezone.timedelta(days=1)
+        from datetime import timedelta
+        yesterday = timezone.now() - timedelta(days=1)
         daily_count = self.repository.model.objects.filter(
             citizen=citizen,
             created_at__gte=yesterday

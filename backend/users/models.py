@@ -31,7 +31,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, db_index=True)
     role = models.CharField(max_length=30, choices=RoleChoices.choices, default=RoleChoices.CITIZEN)
     eco_score_cache = models.IntegerField(default=0)  # Cached score from EcoPointTransactions
-    reputation_score = models.DecimalField(max_digits=3, decimal_places=2, default=5.00)
+    reputation_score = models.DecimalField(max_digits=4, decimal_places=2, default=5.00)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

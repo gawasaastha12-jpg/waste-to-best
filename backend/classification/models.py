@@ -27,7 +27,6 @@ class WasteItem(models.Model):
         db_index=True
     )
     confidence_score = models.DecimalField(
-        max_length=5,
         max_digits=5,
         decimal_places=4,
         blank=True,
@@ -41,6 +40,8 @@ class WasteItem(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = models.Manager()
 
     class Meta:
         ordering = ['-created_at']

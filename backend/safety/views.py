@@ -19,10 +19,21 @@ from .serializers import (
     ResolveReviewSerializer
 )
 
+class IsSafetyOwner(permissions.BasePermission):
+    """
+    Object-level permission for SafetyAssessment: traverses waste_item.citizen
+    since SafetyAssessment has no direct user/owner field.
+    """
+    def has_object_permission(self, request, view, obj) -> bool:  # type: ignore
+        if hasattr(obj, 'waste_item') and hasattr(obj.waste_item, 'citizen'):
+            return obj.waste_item.citizen == request.user
+        return False
+
+
 class SafetyAssessmentViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = SafetyAssessment.objects.all()
     serializer_class = SafetyAssessmentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwner]
+    permission_classes = [permissions.IsAuthenticated, IsSafetyOwner]
 
     def get_queryset(self):
         user = self.request.user
@@ -63,9 +74,11 @@ class ManualSafetyReviewViewSet(viewsets.ModelViewSet):
         """
         POST /api/v1/safety/reviews/<uuid>/claim/ - Claims a review atomically.
         """
+        if pk is None:
+            return Response({"error": "PK is required"}, status=status.HTTP_400_BAD_REQUEST)
         repo = SafetyRepository()
         try:
-            review = repo.claim_review(pk, request.user)
+            review = repo.claim_review(str(pk), request.user)
             serializer = self.get_serializer(review)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ValidationError as e:
@@ -76,6 +89,8 @@ class ManualSafetyReviewViewSet(viewsets.ModelViewSet):
         """
         POST /api/v1/safety/reviews/<uuid>/resolve/ - Resolves a manual review and commits.
         """
+        if pk is None:
+            return Response({"error": "PK is required"}, status=status.HTTP_400_BAD_REQUEST)
         serializer = ResolveReviewSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -92,10 +107,10 @@ class ManualSafetyReviewViewSet(viewsets.ModelViewSet):
         repo = SafetyRepository()
         try:
             # Resolve review
-            resolved_review = repo.resolve_review(pk, notes, decision)
+            resolved_review = repo.resolve_review(str(pk), notes, decision)
             
             # Transition safety assessment
-            next_status = SafetyStatus.APPROVED if decision == "APPROVED" else SafetyStatus.BLOCKED
+            next_status = str(SafetyStatus.APPROVED) if decision == "APPROVED" else str(SafetyStatus.BLOCKED)
             updates = {
                 "decision_source": DecisionSource.MANUAL_REVIEW,
                 "review_required": False,
@@ -104,7 +119,7 @@ class ManualSafetyReviewViewSet(viewsets.ModelViewSet):
             repo.transition_status(review.assessment.id, next_status, updates)
 
             # Update corresponding WasteItem status
-            waste_status = ClassificationStatus.CLASSIFIED if decision == "APPROVED" else ClassificationStatus.FAILED
+            waste_status = str(ClassificationStatus.CLASSIFIED) if decision == "APPROVED" else str(ClassificationStatus.FAILED)
             waste_updates = {
                 "disposal_instructions": f"[MANUAL SAFETY RESOLUTION] {notes}"
             }

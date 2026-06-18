@@ -1,5 +1,6 @@
 # backend/core/settings.py
 import os
+import sys
 from pathlib import Path
 from datetime import timedelta
 
@@ -32,6 +33,7 @@ INSTALLED_APPS = [
     # Third-party packages
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'drf_spectacular',
     
@@ -188,7 +190,6 @@ SPECTACULAR_SETTINGS = {
 # Redis Cache configuration
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
 USE_LOCAL_CACHE = os.environ.get('USE_LOCAL_CACHE', 'False').lower() in ('true', '1', 't')
-import sys
 if 'test' in sys.argv or USE_LOCAL_CACHE:
     CACHES = {
         'default': {
@@ -222,6 +223,22 @@ CELERY_TASK_ROUTES = {
     "classification.tasks.*": {"queue": "classification"},
     "users.tasks.*": {"queue": "notifications"},
     "safety.tasks.*": {"queue": "safety"},
+}
+
+# Celery Beat Schedule for periodic tasks
+CELERY_BEAT_SCHEDULE = {
+    'reap-stuck-classifications': {
+        'task': 'classification.tasks.reap_stuck_classifications_task',
+        'schedule': timedelta(minutes=5),
+    },
+    'reap-stuck-safety-tasks': {
+        'task': 'safety.tasks.reap_stuck_safety_tasks',
+        'schedule': timedelta(minutes=5),
+    },
+    'escalate-overdue-reviews': {
+        'task': 'safety.tasks.escalate_overdue_reviews_task',
+        'schedule': timedelta(minutes=30),
+    },
 }
 
 # CORS Configuration
@@ -261,3 +278,14 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
+# Email Configuration
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
+)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@wastetrackplus.com')

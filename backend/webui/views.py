@@ -1,5 +1,6 @@
 # webui/views.py
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 from .forms import LoginForm, RegisterForm
 
 def home_view(request):
@@ -8,6 +9,7 @@ def home_view(request):
     """
     return render(request, 'home.html')
 
+@login_required(login_url='/login/')
 def result_view(request, item_id):
     """
     Renders the classification result card details for a specific WasteItem.
@@ -28,6 +30,7 @@ def register_view(request):
     form = RegisterForm()
     return render(request, 'register.html', {'form': form})
 
+@login_required(login_url='/login/')
 def profile_view(request):
     """
     Renders the citizen profile and classification history page.
