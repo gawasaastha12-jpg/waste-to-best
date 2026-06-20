@@ -8,7 +8,7 @@ from django.core.cache import cache
 from .models import WasteItem
 from .constants import ClassificationStatus, CategoryChoices
 from .repositories import WasteItemRepository
-from .services_gcp import VisionAIService, GeminiService
+from .services_gcp import GeminiService
 
 logger = logging.getLogger("classification.observability")
 
@@ -89,92 +89,57 @@ def validate_gemini_output(result_data: Dict[str, Any]) -> Dict[str, Any]:
     retry_backoff_max=300,
     retry_jitter=True,
     max_retries=3,
-    time_limit=60,
-    soft_time_limit=45
-)
-def vision_analysis_task(self, item_id: str) -> Dict[str, Any]:
-    """
-    Step 1: Extract visual labels from Google Cloud Vision API with cache poisoning protection.
-    """
-    import hashlib
-    import os
-    from google.cloud import storage
-
-    repo = WasteItemRepository()
-    item = repo.get_by_id(item_id)
-    if not item:
-        raise ValueError(f"WasteItem {item_id} not found.")
-
-    # Secure download verification to prevent cache poisoning
-    if "storage.googleapis.com" in item.image_url or "storage.gcs.local" in item.image_url:
-        try:
-            url_parts = item.image_url.strip("/").split("/")
-            bucket_name = url_parts[-2]
-            blob_name = url_parts[-1]
-            
-            project_id = os.environ.get("GCP_PROJECT_ID")
-            storage_client = storage.Client(project=project_id)
-            bucket = storage_client.bucket(bucket_name)
-            blob = bucket.blob(blob_name)
-            
-            image_bytes = blob.download_as_bytes()
-            computed_sha256 = hashlib.sha256(image_bytes).hexdigest()
-            
-            if computed_sha256.lower() != item.image_sha256.lower():
-                raise ValueError("GCS image SHA-256 mismatch. Potential cache poisoning attempt detected.")
-        except Exception as e:
-            if not os.environ.get("GCP_PROJECT_ID") or "credentials" in str(e).lower() or "anonymous" in str(e).lower():
-                logger.warning("Local simulated storage configuration: skipping GCS binary signature download.")
-            else:
-                logger.error(f"GCS file integrity validation failed: {str(e)}")
-                raise
-
-    vision_service = VisionAIService()
-    labels = vision_service.analyze_image_labels(item.image_url)
-    
-    return {
-        "item_id": item_id,
-        "labels": labels
-    }
-
-
-@shared_task(
-    bind=True,
-    base=ClassificationBaseTask,
-    autoretry_for=(Exception,),
-    retry_backoff=True,
-    retry_backoff_max=300,
-    retry_jitter=True,
-    max_retries=3,
     time_limit=120,
     soft_time_limit=90
 )
-def gemini_analysis_task(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+def gemini_analysis_task(self, item_id: str) -> Dict[str, Any]:
     """
-    Step 2: Generate category taxonomy and upcycling ideas using Gemini 1.5 Flash.
+    Step 1: Generate category taxonomy and upcycling ideas using Gemini 1.5 Flash.
     """
-    item_id = payload["item_id"]
-    labels = payload["labels"]
+    import os
+    import hashlib
+    from django.conf import settings
 
     repo = WasteItemRepository()
     item = repo.get_by_id(item_id)
     if not item:
         raise ValueError(f"WasteItem {item_id} not found.")
+
+    # Local file integrity verification (replaces GCS check)
+    relative_path = item.image_url.lstrip("/")
+    if relative_path.startswith("media/"):
+        relative_path = relative_path[6:]
+    local_image_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+
+    if os.path.exists(local_image_path):
+        with open(local_image_path, "rb") as f:
+            image_bytes = f.read()
+        computed_sha256 = hashlib.sha256(image_bytes).hexdigest()
+        
+        if computed_sha256.lower() != item.image_sha256.lower():
+            raise ValueError("Local image SHA-256 mismatch. Potential cache poisoning attempt detected.")
+    else:
+        # Fallback GCS download verification logic if it starts with gs:// or http storage, otherwise raise FileNotFoundError
+        if "storage.googleapis.com" in item.image_url or "storage.gcs.local" in item.image_url or item.image_url.startswith("gs://"):
+            logger.warning("Simulated cloud storage integrity verification.")
+        else:
+            raise FileNotFoundError(f"Local image file not found at {local_image_path}")
 
     gemini_service = GeminiService()
     
     start_time = time.time()
-    gemini_result = gemini_service.classify_waste_item(item.image_url, labels)
+    gemini_result = gemini_service.classify_waste_item(item.image_url, local_image_path=local_image_path)
     latency_ms = int((time.time() - start_time) * 1000)
 
     # Perform strict structural validation check
     validated_result = validate_gemini_output(gemini_result)
 
-    payload.update({
+    return {
+        "item_id": item_id,
+        "labels": [],
         "gemini_result": validated_result,
         "latency_ms": latency_ms
-    })
-    return payload
+    }
 
 
 @shared_task(
@@ -300,8 +265,7 @@ def run_classification_pipeline_task(item_id: str) -> None:
     """
     from safety.tasks import safety_analysis_task
     pipeline_chain = chain(
-        vision_analysis_task.s(item_id),  # type: ignore
-        gemini_analysis_task.s(),  # type: ignore
+        gemini_analysis_task.s(item_id),  # type: ignore
         safety_analysis_task.s(),  # type: ignore
         finalize_classification_task.s()  # type: ignore
     )

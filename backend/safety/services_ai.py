@@ -1,9 +1,10 @@
 # backend/safety/services_ai.py
+import os
 import json
 import logging
-import os
-import vertexai
-from vertexai.generative_models import GenerativeModel, Part
+from PIL import Image
+from django.conf import settings
+import google.generativeai as genai
 from typing import Dict, Any, List
 from .constants import RiskLevel, HazardCategory
 from classification.exceptions import GCPServiceError
@@ -12,28 +13,29 @@ logger = logging.getLogger("safety.ai")
 
 class SafetyAIService:
     def __init__(self) -> None:
-        self.project_id = os.environ.get("GCP_PROJECT_ID")
-        self.location = os.environ.get("GCP_LOCATION", "us-central1")
-        self.model_name = "gemini-1.5-flash-001"
+        self.model_name = "gemini-1.5-flash"
         self.initialized = False
-
-        try:
-            vertexai.init(project=self.project_id, location=self.location)
-            self.initialized = True
-        except Exception:
-            logger.warning("Vertex AI initialization failed inside SafetyAIService. Mock safety engine active.")
+        api_key = getattr(settings, "GEMINI_API_KEY", "")
+        if api_key:
+            try:
+                genai.configure(api_key=api_key)
+                self.initialized = True
+            except Exception as e:
+                logger.warning(f"google-generativeai configuration failed in SafetyAIService: {str(e)}")
+        else:
+            logger.warning("GEMINI_API_KEY settings attribute is missing or empty. Mock safety engine active.")
 
     def analyze_safety(self, image_url: str, category: str, labels: List[str]) -> Dict[str, Any]:
         """
-        Uses Vertex AI Gemini 1.5 Flash to assess safety and hazard levels of a classified waste item.
+        Uses Google Gemini 1.5 Flash to assess safety and hazard levels of a classified waste item.
         """
         # Define choices to instruct the AI
         allowed_risk_levels = [r.value for r in RiskLevel]
         allowed_hazard_categories = [h.value for h in HazardCategory]
 
         prompt = f"""
-        You are an expert AI Safety Engine verifying a waste item with predicted category: '{category}' and labels: {', '.join(labels)}.
-        Analyze the image and labels for safety hazards (toxic chemicals, fire risk, batteries, medical/sharps, etc.).
+        You are an expert AI Safety Engine verifying a waste item with predicted category: '{category}'.
+        Analyze the image for safety hazards (toxic chemicals, fire risk, batteries, medical/sharps, etc.).
         
         Output EXACTLY a JSON structure matching this schema:
         {{
@@ -62,22 +64,35 @@ class SafetyAIService:
             }
 
         try:
-            # Enforce 30 seconds timeout configuration via generation/client defaults if available
-            model = GenerativeModel(
-                self.model_name,
+            # Resolve local image path
+            relative_path = image_url.lstrip("/")
+            if relative_path.startswith("media/"):
+                relative_path = relative_path[6:]
+            local_image_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+
+            if not os.path.exists(local_image_path):
+                # Fallback path resolution
+                local_image_path = os.path.join(settings.MEDIA_ROOT, "uploads", os.path.basename(image_url))
+
+            if not os.path.exists(local_image_path):
+                raise FileNotFoundError(f"Local image file not found at: {local_image_path}")
+
+            # Open image using Pillow
+            img = Image.open(local_image_path)
+
+            # Define model
+            model = genai.GenerativeModel(self.model_name)
+            
+            # Request content generation in JSON mode
+            response = model.generate_content(
+                [img, prompt],
                 generation_config={
                     "response_mime_type": "application/json",
-                    "temperature": 0.0,
+                    "temperature": 0.0
                 }
             )
-
-            image_mime = "image/png" if image_url.lower().endswith(".png") else "image/jpeg"
-            image_part = Part.from_uri(mime_type=image_mime, uri=image_url)
-            
-            # Executing generation
-            response = model.generate_content([image_part, prompt], request_options={"timeout": 30.0})
             result_data = json.loads(response.text)
             return result_data
         except Exception as e:
-            logger.exception("Gemini Vertex AI safety analysis processing failure.")
+            logger.exception("Gemini safety analysis processing failure.")
             raise GCPServiceError(f"Gemini Safety analysis failed: {str(e)}")

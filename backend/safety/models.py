@@ -1,5 +1,6 @@
 # backend/safety/models.py
 import uuid
+from typing import Any
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -53,7 +54,7 @@ class SafetyAssessment(models.Model):
     class Meta:
         constraints = [
             CheckConstraint(
-                check=Q(risk_score__gte=0.0) & Q(risk_score__lte=1.0),
+                condition=Q(risk_score__gte=0.0) & Q(risk_score__lte=1.0),
                 name="valid_risk_score"
             )
         ]
@@ -95,7 +96,7 @@ class SafetyAuditLog(models.Model):
             raise ValidationError("SafetyAuditLog records are immutable and cannot be updated.")
         super().save(*args, **kwargs)
 
-    def delete(self, *args, **kwargs) -> None:
+    def delete(self, using: Any = None, keep_parents: bool = False) -> tuple[int, dict[str, int]]:
         raise ValidationError("SafetyAuditLog records are immutable and cannot be deleted.")
 
     def __str__(self) -> str:

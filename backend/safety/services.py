@@ -143,23 +143,24 @@ class AuditGCSService:
     @classmethod
     def upload_to_gcs(cls, payload: dict, bucket_name: str = "wastetrack-audit") -> str:
         """
-        Uploads compressed payload to GCS bucket.
+        Saves the compressed audit payload locally inside MEDIA_ROOT/audit.
         """
         p_hash = cls.compute_hash(payload)
         payload_str = json.dumps(payload, sort_keys=True)
         compressed_bytes = gzip.compress(payload_str.encode('utf-8'))
 
         import os
-        project_id = os.environ.get("GCP_PROJECT_ID")
-        credentials_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-
-        if project_id and credentials_path:
-            try:
-                from google.cloud import storage
-                client = storage.Client(project=project_id)
-                bucket = client.bucket(bucket_name)
-                blob = bucket.blob(f"audit_{p_hash}.json.gz")
-                blob.upload_from_string(compressed_bytes, content_type="application/gzip")
-            except Exception:
-                pass
-        return f"gs://{bucket_name}/audit_{p_hash}.json.gz"
+        from django.conf import settings
+        import logging
+        
+        try:
+            audit_dir = os.path.join(settings.MEDIA_ROOT, 'audit')
+            os.makedirs(audit_dir, exist_ok=True)
+            file_path = os.path.join(audit_dir, f"audit_{p_hash}.json.gz")
+            with open(file_path, 'wb') as f:
+                f.write(compressed_bytes)
+            return f"/media/audit/audit_{p_hash}.json.gz"
+        except Exception as e:
+            logger = logging.getLogger("safety.audit")
+            logger.error(f"Failed to save local audit log: {str(e)}")
+            return f"gs://{bucket_name}/audit_{p_hash}.json.gz"

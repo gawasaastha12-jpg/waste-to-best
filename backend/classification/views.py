@@ -1,4 +1,8 @@
 # backend/classification/views.py
+import os
+from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -24,15 +28,18 @@ class SignedURLView(APIView):
         description="Generates a signed upload URL to place image files directly to the safe GCS bucket."
     )
     def post(self, request: Request) -> Response:
+        print("REQUEST DATA:", request.data)
         serializer = SignedURLRequestSerializer(data=request.data)
         if serializer.is_valid():
             service = ImageUploadService()
             response_data = service.request_signed_upload(
                 file_name=serializer.validated_data['file_name'],
                 file_size=serializer.validated_data['file_size'],
-                content_type=serializer.validated_data['content_type']
+                content_type=serializer.validated_data['content_type'],
+                request=request
             )
             return Response(response_data, status=status.HTTP_200_OK)
+        print("SERIALIZER ERRORS:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -134,4 +141,26 @@ class ClassificationListView(APIView):
             'count': data['count'],
             'results': serializer.data
         }, status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class LocalImageUploadView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(exclude=True)
+    def put(self, request: Request, file_name: str) -> Response:
+        """
+        Receives raw image bytes from client and saves them to local storage.
+        """
+        try:
+            upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            file_path = os.path.join(upload_dir, file_name)
+            with open(file_path, 'wb') as f:
+                f.write(request.body)
+                
+            return Response({"status": "success"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

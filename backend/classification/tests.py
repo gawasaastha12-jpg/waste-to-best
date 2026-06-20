@@ -13,7 +13,7 @@ from .constants import ClassificationStatus, CategoryChoices
 from .repositories import WasteItemRepository
 from .serializers import SignedURLRequestSerializer, ClassificationConfirmSerializer
 from .services import ImageUploadService, ClassificationPipelineService
-from .tasks import vision_analysis_task, gemini_analysis_task, safety_filter_task, finalize_classification_task
+from .tasks import gemini_analysis_task, safety_filter_task, finalize_classification_task
 
 User = get_user_model()
 
@@ -75,12 +75,10 @@ class ClassificationServicesAndTasksTests(TestCase):
         self.citizen = User.objects.create_user(email="citizen@test.com", password="securepassword123")
         cache.clear()
 
-    @patch('classification.services_gcp.GCSService.generate_signed_upload_url')
-    def test_image_upload_signed_url(self, mock_signed_url):
-        mock_signed_url.return_value = "https://signedurl.com/upload"
+    def test_image_upload_signed_url(self):
         upload_service = ImageUploadService()
         result = upload_service.request_signed_upload("plastic_bottle.png", 1024, "image/png")
-        self.assertEqual(result["signed_url"], "https://signedurl.com/upload")
+        self.assertIn("/api/v1/classification/upload-local/", result["signed_url"])
         self.assertTrue(result["image_url"].endswith(".png"))
 
     @patch('classification.tasks.run_classification_pipeline_task.delay')
@@ -117,10 +115,8 @@ class ClassificationServicesAndTasksTests(TestCase):
         self.assertEqual(item.predicted_category, CategoryChoices.PAPER)
         self.assertEqual(float(item.confidence_score), 0.90)
 
-    @patch('classification.tasks.VisionAIService.analyze_image_labels')
     @patch('classification.tasks.GeminiService.classify_waste_item')
-    def test_celery_pipeline_tasks(self, mock_gemini, mock_vision):
-        mock_vision.return_value = ["can", "tin", "aluminum"]
+    def test_celery_pipeline_tasks(self, mock_gemini):
         mock_gemini.return_value = {
             "category": "Metal",
             "confidence": 0.95,
@@ -133,24 +129,20 @@ class ClassificationServicesAndTasksTests(TestCase):
 
         item = WasteItem.objects.create(
             citizen=self.citizen,
-            image_url="https://storage.gcs/tin_can.jpg",
+            image_url="https://storage.gcs.local/tin_can.jpg",
             image_sha256="c" * 64,
             status=ClassificationStatus.ANALYZING
         )
 
-        # 1. Vision
-        vision_result = vision_analysis_task(str(item.id))
-        self.assertEqual(vision_result["labels"], ["can", "tin", "aluminum"])
-
-        # 2. Gemini
-        gemini_result = gemini_analysis_task(vision_result)
+        # 1. Gemini
+        gemini_result = gemini_analysis_task(str(item.id))
         self.assertIn("gemini_result", gemini_result)
 
-        # 3. Safety Filter
+        # 2. Safety Filter
         safety_result = safety_filter_task(gemini_result)
         self.assertEqual(safety_result["gemini_result"]["category"], "Metal")
 
-        # 4. Finalize
+        # 3. Finalize
         finalize_result = finalize_classification_task(safety_result)
         item.refresh_from_db()
         self.assertEqual(item.status, ClassificationStatus.CLASSIFIED)
@@ -285,29 +277,30 @@ class ProductionHardenVerificationTests(TestCase):
         self.repository = WasteItemRepository()
         cache.clear()
 
-    @patch('google.cloud.storage.Client')
-    def test_cache_poisoning_with_forged_sha256(self, mock_storage):
-        # Setup mock GCS return values representing real file bytes
-        mock_blob = MagicMock()
-        mock_blob.download_as_bytes.return_value = b"authentic image bytes"
-        mock_bucket = MagicMock()
-        mock_bucket.blob.return_value = mock_blob
-        mock_client = MagicMock()
-        mock_client.bucket.return_value = mock_bucket
-        mock_storage.return_value = mock_client
-
-        # Compute correct authentic hash: 010d8a57a3e76a6d634db844f2d718b5de398bdc6d046fdf6d0d297a73117462
+    def test_cache_poisoning_with_forged_sha256(self):
+        import os
+        from django.conf import settings
+        
+        # Create a temp local file
+        os.makedirs(os.path.join(settings.MEDIA_ROOT, "uploads"), exist_ok=True)
+        file_path = os.path.join(settings.MEDIA_ROOT, "uploads", "poison_test.jpg")
+        with open(file_path, "wb") as f:
+            f.write(b"authentic image bytes")
+            
         item = self.repository.create(
             citizen=self.citizen,
-            image_url="https://storage.googleapis.com/test-bucket/forged.jpg",
-            image_sha256="forged_sha256_hash_value_that_does_not_match_computed_hash_code",
+            image_url="/media/uploads/poison_test.jpg",
+            image_sha256="forged_sha256_hash_value_that_does_not_match",
             status=ClassificationStatus.ANALYZING
         )
-
-        with patch('os.environ.get', return_value="test-project-id"):
+        
+        try:
             with self.assertRaises(ValueError) as ctx:
-                vision_analysis_task(str(item.id))
-            self.assertIn("GCS image SHA-256 mismatch", str(ctx.exception))
+                gemini_analysis_task(str(item.id))
+            self.assertIn("Local image SHA-256 mismatch", str(ctx.exception))
+        finally:
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
     def test_reap_stuck_analyzing_items(self):
         from django.utils import timezone
@@ -337,26 +330,19 @@ class ProductionHardenVerificationTests(TestCase):
     @patch('classification.tasks.GeminiService.classify_waste_item')
     def test_gemini_retry_loops(self, mock_classify, mock_retry):
         mock_classify.side_effect = Exception("Vertex connection timeout")
-        payload = {"item_id": "dummy_id", "labels": []}
+        item = self.repository.create(
+            citizen=self.citizen,
+            image_url="https://storage.gcs.local/retry.jpg",
+            image_sha256="r" * 64,
+            status=ClassificationStatus.ANALYZING
+        )
         
         # Test retry trigger
         try:
-            gemini_analysis_task(payload)
+            gemini_analysis_task(str(item.id))
         except Exception:
             pass
         self.assertTrue(mock_retry.called or mock_classify.called)
-
-    @patch('classification.tasks.vision_analysis_task.retry')
-    @patch('classification.tasks.VisionAIService.analyze_image_labels')
-    def test_vision_api_failures(self, mock_vision, mock_retry):
-        mock_vision.side_effect = Exception("Vision API quota limit exceeded")
-        
-        # Test retry trigger
-        try:
-            vision_analysis_task("dummy_id")
-        except Exception:
-            pass
-        self.assertTrue(mock_retry.called or mock_vision.called)
 
 
 

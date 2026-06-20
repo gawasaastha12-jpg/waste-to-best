@@ -5,7 +5,8 @@ from .views import (
     ClassificationSubmitView,
     ClassificationStatusView,
     ClassificationConfirmView,
-    ClassificationListView
+    ClassificationListView,
+    LocalImageUploadView
 )
 
 urlpatterns = [
@@ -14,5 +15,6 @@ urlpatterns = [
     path('submit/', ClassificationSubmitView.as_view(), name='classification_submit'),
     path('status/<uuid:uuid>/', ClassificationStatusView.as_view(), name='classification_status'),
     path('confirm/', ClassificationConfirmView.as_view(), name='classification_confirm'),
+    path('upload-local/<str:file_name>', LocalImageUploadView.as_view(), name='local_image_upload'),
 ]
 

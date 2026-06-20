@@ -1,4 +1,6 @@
 # backend/safety/views.py
+from typing import cast
+from django.db.models import QuerySet
 from django.utils import timezone
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
@@ -35,12 +37,13 @@ class SafetyAssessmentViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SafetyAssessmentSerializer
     permission_classes = [permissions.IsAuthenticated, IsSafetyOwner]
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet:
         user = self.request.user
-        if user.is_staff:
-            return self.queryset
+        queryset = cast(QuerySet, self.queryset)
+        if getattr(user, 'is_staff', False):
+            return queryset
         # IsOwner check: filter by citizen of the linked WasteItem
-        return self.queryset.filter(waste_item__citizen=user)
+        return queryset.filter(waste_item__citizen=user)
 
     @action(detail=False, methods=["get"], url_path="history")
     def history(self, request):
@@ -62,12 +65,13 @@ class ManualSafetyReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ManualSafetyReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet:
         user = self.request.user
-        if user.is_staff:
-            return self.queryset
+        queryset = cast(QuerySet, self.queryset)
+        if getattr(user, 'is_staff', False):
+            return queryset
         # Non-staff can only see reviews assigned to them
-        return self.queryset.filter(assigned_to=user)
+        return queryset.filter(assigned_to=user)
 
     @action(detail=True, methods=["post"], url_path="claim")
     def claim(self, request, pk=None):

@@ -8,7 +8,7 @@ from django.conf import settings
 from .models import WasteItem
 from .constants import ClassificationStatus
 from .repositories import WasteItemRepository
-from .services_gcp import GCSService
+#from .services_gcp import GCSService
 from .tasks import run_classification_pipeline_task
 
 logger = logging.getLogger("classification.service")
@@ -17,25 +17,24 @@ CACHE_TTL = 60 * 60 * 24 * 30  # 30 days
 
 class ImageUploadService:
     def __init__(self) -> None:
-        self.gcs_service = GCSService()
+        pass
 
-    def request_signed_upload(self, file_name: str, file_size: int, content_type: str) -> Dict[str, Any]:
+    def request_signed_upload(self, file_name, file_size, content_type, request=None):
         """
-        Coordinates generating GCS signed upload URLs for frontend image placement.
+        Local upload version.
         """
-        # Enforce unique blob names using UUIDs
-        ext = file_name.split('.')[-1]
+        ext = file_name.split(".")[-1]
         unique_name = f"{uuid.uuid4()}.{ext}"
-        
-        signed_url = self.gcs_service.generate_signed_upload_url(unique_name, content_type=content_type)
-        gcs_base = f"https://storage.googleapis.com/{self.gcs_service.bucket_name}"
-        if not signed_url.startswith("https://storage.googleapis.com"):
-            gcs_base = f"https://storage.gcs.local/{self.gcs_service.bucket_name}"
+
+        if request:
+            upload_url = request.build_absolute_uri(f"/api/v1/classification/upload-local/{unique_name}")
+        else:
+            upload_url = f"http://localhost:8000/api/v1/classification/upload-local/{unique_name}"
 
         return {
-            "signed_url": signed_url,
-            "image_url": f"{gcs_base}/{unique_name}",
-            "file_name": unique_name
+            "signed_url": upload_url,
+            "image_url": f"/media/uploads/{unique_name}",
+            "file_name": unique_name,
         }
 
 
@@ -90,7 +89,7 @@ class ClassificationPipelineService:
         )
 
         # Enqueue background Celery task
-        run_classification_pipeline_task.delay(str(waste_item.id))
+        run_classification_pipeline_task.delay(str(waste_item.id))  # type: ignore
         return waste_item
 
     def confirm_classification(self, user: Any, item_id: str, confirmed_category: str) -> WasteItem:

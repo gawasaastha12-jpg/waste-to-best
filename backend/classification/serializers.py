@@ -27,7 +27,7 @@ class ClassificationSubmitSerializer(serializers.Serializer):
 class WasteItemSerializer(serializers.ModelSerializer):
     safety_assessment = SafetyAssessmentSerializer(read_only=True)
 
-    class Meta:
+    class Meta:  # type: ignore
         model = WasteItem
         fields = [
             'id',
