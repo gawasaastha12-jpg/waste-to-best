@@ -17,11 +17,11 @@ class SignedURLRequestSerializer(serializers.Serializer):
 
 class SignedURLResponseSerializer(serializers.Serializer):
     signed_url = serializers.URLField()
-    image_url = serializers.URLField()
+    image_url = serializers.CharField(max_length=512)
     file_name = serializers.CharField()
 
 class ClassificationSubmitSerializer(serializers.Serializer):
-    image_url = serializers.URLField()
+    image_url = serializers.CharField(max_length=512)
     image_sha256 = serializers.CharField(max_length=64, min_length=64)
 
 class WasteItemSerializer(serializers.ModelSerializer):

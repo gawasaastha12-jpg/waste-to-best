@@ -162,5 +162,7 @@ class LocalImageUploadView(APIView):
                 
             return Response({"status": "success"}, status=status.HTTP_200_OK)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -13,7 +13,7 @@ logger = logging.getLogger("safety.ai")
 
 class SafetyAIService:
     def __init__(self) -> None:
-        self.model_name = "gemini-1.5-flash"
+        self.model_name = "gemini-2.5-flash"
         self.initialized = False
         api_key = getattr(settings, "GEMINI_API_KEY", "")
         if api_key:

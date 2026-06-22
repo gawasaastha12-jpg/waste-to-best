@@ -3,7 +3,7 @@ import os
 import json
 import logging
 from PIL import Image
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from django.conf import settings
 import google.generativeai as genai
 from .exceptions import GCPServiceError
@@ -12,7 +12,7 @@ logger = logging.getLogger("classification.gcp")
 
 class GeminiService:
     def __init__(self) -> None:
-        self.model_name = "gemini-1.5-flash"
+        self.model_name = "gemini-2.5-flash"
         self.initialized = False
         api_key = getattr(settings, "GEMINI_API_KEY", "")
         if api_key:
@@ -24,7 +24,7 @@ class GeminiService:
         else:
             logger.warning("GEMINI_API_KEY settings attribute is missing or empty. Mock Gemini engine active.")
 
-    def classify_waste_item(self, image_url: str, local_image_path: str = None) -> Dict[str, Any]:
+    def classify_waste_item(self, image_url: str, local_image_path: Optional[str] = None) -> Dict[str, Any]:
         """
         Uses Google Gemini 1.5 Flash to categorize a waste item and suggest circular actions.
         Enforces structured JSON schema response format.

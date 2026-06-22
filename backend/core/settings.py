@@ -294,3 +294,7 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@wastetrackplu
 
 # AI APIs
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
+# File and Data Upload Limits (15MB to allow high-res images)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 15728640
+FILE_UPLOAD_MAX_MEMORY_SIZE = 15728640
