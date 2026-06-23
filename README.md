@@ -99,8 +99,4 @@ sequenceDiagram
 
 ## 🌐 Production Deployment (Render)
 THE APP IS LIVE AT - https://waste-to-best.onrender.com
-   - `DEBUG=False`
-   - `SECRET_KEY=your_production_secret`
-   - `DATABASE_URL=your_neon_postgres_url`
-   - `REDIS_URL=your_render_redis_url`
-3. Static files are automatically handled via Gunicorn and WhiteNoise compression on startup (`python manage.py collectstatic --noinput` is run by `start.sh`).
+  
