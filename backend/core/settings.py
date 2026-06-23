@@ -91,13 +91,22 @@ DB_PASSWORD = os.environ.get('DB_PASSWORD', 'securepassword123')
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
 DB_PORT = os.environ.get('DB_PORT', '5432')
 
+# Check if GDAL/GEOS is available for PostGIS, fallback to standard postgresql if not
+try:
+    from django.contrib.gis.geos import GEOSGeometry
+    HAS_GDAL = True
+except ImproperlyConfigured:
+    HAS_GDAL = False
+
+DB_ENGINE = 'django.contrib.gis.db.backends.postgis' if HAS_GDAL else 'django.db.backends.postgresql'
+
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
     import urllib.parse as urlparse
     url = urlparse.urlparse(DATABASE_URL)
     DATABASES = {
         'default': {
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',  # Enabled PostGIS spatial queries
+            'ENGINE': DB_ENGINE,
             'NAME': url.path[1:],
             'USER': url.username,
             'PASSWORD': url.password,
@@ -108,7 +117,7 @@ if DATABASE_URL:
 elif os.environ.get('USE_POSTGRES', 'False').lower() == 'true':
     DATABASES = {
         'default': {
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',  # Enabled PostGIS spatial queries
+            'ENGINE': DB_ENGINE,
             'NAME': DB_NAME,
             'USER': DB_USER,
             'PASSWORD': DB_PASSWORD,
