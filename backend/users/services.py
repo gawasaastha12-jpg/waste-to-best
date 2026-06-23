@@ -49,7 +49,14 @@ class UserRegistrationService:
 
         # Trigger welcome email asynchronously after transaction commits successfully
         from .tasks import send_welcome_email
-        transaction.on_commit(lambda: send_welcome_email.delay(str(user.id)))
+        def queue_email():
+            try:
+                send_welcome_email.delay(str(user.id))
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to queue welcome email: {e}")
+
+        transaction.on_commit(queue_email)
 
         return user
 
