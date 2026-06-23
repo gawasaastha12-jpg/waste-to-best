@@ -19,8 +19,22 @@ class UserRegisterView(APIView):
     def _get_client_ip(self, request: Request) -> str:
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
-            return x_forwarded_for.split(',')[0].strip()
-        return request.META.get('REMOTE_ADDR', '0.0.0.0')
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+
+        if not ip:
+            return '0.0.0.0'
+
+        # Handle IPv4 with port (e.g. "12.34.56.78:55432")
+        if '.' in ip and ':' in ip:
+            ip = ip.split(':')[0].strip()
+
+        # Handle IPv6 with brackets and port (e.g. "[2001:db8::1]:12345")
+        if ip.startswith('[') and ']' in ip:
+            ip = ip.split(']')[0].replace('[', '').strip()
+
+        return ip
 
     @extend_schema(
         request=UserRegisterSerializer,

@@ -239,11 +239,26 @@ SPECTACULAR_SETTINGS = {
 # Redis Cache configuration
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
 USE_LOCAL_CACHE = os.environ.get('USE_LOCAL_CACHE', 'False').lower() in ('true', '1', 't')
-if 'test' in sys.argv or USE_LOCAL_CACHE:
+
+# Proactively verify if Redis is reachable to prevent DRF Throttling connection crashes in production
+redis_available = False
+if not ('test' in sys.argv or USE_LOCAL_CACHE):
+    import urllib.parse as urlparse
+    import socket
+    try:
+        url = urlparse.urlparse(REDIS_URL)
+        host = url.hostname or '127.0.0.1'
+        port = url.port or 6379
+        with socket.create_connection((host, port), timeout=1.0):
+            redis_available = True
+    except Exception:
+        redis_available = False
+
+if 'test' in sys.argv or USE_LOCAL_CACHE or not redis_available:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'safety-test-cache',
+            'LOCATION': 'safety-fallback-cache',
         }
     }
 else:
