@@ -26,11 +26,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . /app/
 
+# Make the startup script executable
+RUN chmod +x /app/start.sh
+
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
 # Expose port 8000
 EXPOSE 8000
 
-# Start the application using Gunicorn
-CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+# Start the application using the startup script
+CMD ["/app/start.sh"]
