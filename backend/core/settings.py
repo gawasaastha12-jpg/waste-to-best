@@ -22,6 +22,8 @@ elif not SECRET_KEY:
     SECRET_KEY = 'django-insecure-prod-key-for-local-dev-change-me'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+if os.environ.get('RENDER'):
+    ALLOWED_HOSTS.append('*')
 
 # Application definition
 INSTALLED_APPS = [
