@@ -20,11 +20,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy the requirements file and install dependencies
-COPY requirements.txt /app/
+COPY backend/requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
-COPY . /app/
+# Copy the rest of the application code from the backend folder to container root
+COPY backend/ /app/
 
 # Make the startup script executable
 RUN chmod +x /app/start.sh
