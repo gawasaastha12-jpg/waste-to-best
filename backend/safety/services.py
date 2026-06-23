@@ -3,6 +3,7 @@ import json
 import gzip
 import base64
 import hashlib
+from typing import Optional
 from django.core.exceptions import ValidationError
 from .constants import RiskLevel, HazardCategory, DecisionSource, RULE_ENGINE_VERSION
 
@@ -10,7 +11,7 @@ class VersionedRuleEngine:
     VERSION = RULE_ENGINE_VERSION
 
     @classmethod
-    def evaluate(cls, category: str, labels: list) -> dict:
+    def evaluate(cls, category: str, labels: list) -> Optional[dict]:
         """
         Applies deterministic rules to classify hazards before AI processing.
         Returns a dictionary if matching rules, or None.

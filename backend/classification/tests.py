@@ -1,12 +1,13 @@
 # backend/classification/tests.py
 import uuid
+import typing
 from unittest.mock import patch, MagicMock
 from django.test import TestCase
-from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.core.cache import cache
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
+from users.models import User
 
 from .models import WasteItem
 from .constants import ClassificationStatus, CategoryChoices
@@ -14,8 +15,6 @@ from .repositories import WasteItemRepository
 from .serializers import SignedURLRequestSerializer, ClassificationConfirmSerializer
 from .services import ImageUploadService, ClassificationPipelineService
 from .tasks import gemini_analysis_task, safety_filter_task, finalize_classification_task
-
-User = get_user_model()
 
 class WasteItemRepositoryTests(TestCase):
     def setUp(self):
@@ -33,6 +32,7 @@ class WasteItemRepositoryTests(TestCase):
         
         # Test lookups
         fetched = self.repository.get_by_id(str(item.id))
+        assert fetched is not None
         self.assertEqual(fetched.image_sha256, item.image_sha256)
 
         # Test filter
@@ -113,6 +113,7 @@ class ClassificationServicesAndTasksTests(TestCase):
         )
         self.assertEqual(item.status, ClassificationStatus.CLASSIFIED)
         self.assertEqual(item.predicted_category, CategoryChoices.PAPER)
+        assert item.confidence_score is not None
         self.assertEqual(float(item.confidence_score), 0.90)
 
     @patch('classification.tasks.GeminiService.classify_waste_item')
@@ -161,7 +162,7 @@ class ClassificationServicesAndTasksTests(TestCase):
         self.assertEqual(res["gemini_result"]["category"], CategoryChoices.HAZARDOUS)
 
 
-class ClassificationAPITests(TestCase):
+class ClassificationAPITests(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.citizen = User.objects.create_user(email="citizen@test.com", password="securepassword123")
@@ -186,7 +187,7 @@ class ClassificationAPITests(TestCase):
             "image_sha256": "a" * 64
         }, format='json')
         self.assertEqual(submit_response.status_code, status.HTTP_201_CREATED)
-        item_id = submit_response.data["id"]
+        item_id = submit_response.data["id"]  # type: ignore
 
         # 2. Get status (Authorized owner)
         status_url = reverse('classification_status', kwargs={"uuid": item_id})
@@ -236,7 +237,7 @@ class ClassificationAPITests(TestCase):
         }, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn("Daily classification quota limit", response.data["error"])
+        self.assertIn("Daily classification quota limit", response.data["error"])  # type: ignore
 
     def test_invalid_sha256_format(self):
         submit_url = reverse('classification_submit')
@@ -246,7 +247,7 @@ class ClassificationAPITests(TestCase):
         }, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Invalid image SHA-256 signature", response.data["error"])
+        self.assertIn("Invalid image SHA-256 signature", response.data["error"])  # type: ignore
 
     def test_overwrite_protection_on_completed_status(self):
         repository = WasteItemRepository()
@@ -320,7 +321,7 @@ class ProductionHardenVerificationTests(TestCase):
         )
 
         # Run reaper task
-        reaped_count = reap_stuck_classifications_task()
+        reaped_count = reap_stuck_classifications_task()  # type: ignore
         self.assertEqual(reaped_count, 1)
 
         stuck_item.refresh_from_db()

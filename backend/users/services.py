@@ -51,7 +51,7 @@ class UserRegistrationService:
         from .tasks import send_welcome_email
         def queue_email():
             try:
-                send_welcome_email.delay(str(user.id))
+                send_welcome_email.delay(str(user.id))  # type: ignore
             except Exception as e:
                 import logging
                 logging.getLogger(__name__).error(f"Failed to queue welcome email: {e}")

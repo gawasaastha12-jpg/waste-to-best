@@ -1,5 +1,6 @@
 # backend/users/models.py
 import uuid
+from typing import Optional, ClassVar
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.conf import settings
@@ -12,7 +13,7 @@ class RoleChoices(models.TextChoices):
     ADMIN = 'admin', 'Admin'
 
 class UserManager(BaseUserManager):
-    def create_user(self, email: str, password: str = None, role: str = RoleChoices.CITIZEN, **extra_fields) -> 'User':
+    def create_user(self, email: str, password: Optional[str] = None, role: str = RoleChoices.CITIZEN, **extra_fields) -> 'User':
         if not email:
             raise ValueError("Users must register with an email address.")
         email = self.normalize_email(email)
@@ -21,13 +22,13 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email: str, password: str = None, **extra_fields) -> 'User':
+    def create_superuser(self, email: str, password: Optional[str] = None, **extra_fields) -> 'User':
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(email, password, role=RoleChoices.ADMIN, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # type: ignore
     email = models.EmailField(unique=True, db_index=True)
     role = models.CharField(max_length=30, choices=RoleChoices.choices, default=RoleChoices.CITIZEN)
     eco_score_cache = models.IntegerField(default=0)  # Cached score from EcoPointTransactions
@@ -37,7 +38,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    objects = UserManager()
+    objects: ClassVar[UserManager] = UserManager()
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
