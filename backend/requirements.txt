@@ -15,4 +15,5 @@ django-stubs>=6.0.5
 djangorestframework-stubs>=3.17.0
 django-storages[google]>=1.14
 gunicorn>=21.2.0
+whitenoise>=6.6.0
 
